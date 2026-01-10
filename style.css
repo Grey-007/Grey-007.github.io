@@ -217,11 +217,9 @@ nav a:hover::after {
   opacity: 0.85;
   margin-top: 22px;
 }
-
-
 /* ===== PROJECTS ===== */
 .projects {
-  padding: 120px 96px;
+  padding: 80px 50px;
 }
 
 .projects h2 {
@@ -232,16 +230,17 @@ nav a:hover::after {
 
 .repo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
 }
 
 .repo-card {
   background: #0c0c0c;
-  border-radius: 16px;
+  border-radius: 24px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 2px solid rgba(0, 255, 17, 0.689);
 }
+
 
 /* ===== SOCIALS ===== */
 .socials {
