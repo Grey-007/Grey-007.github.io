@@ -1,125 +1,201 @@
-/* ============================
-   CONFIG
-============================ */
-const GITHUB_USERNAME = "Grey-007"; // ← change if needed
-const REPO_CONTAINER = document.getElementById("repo-container");
-const TYPING_TARGET = document.getElementById("typing-name");
-const TOTAL_REPOS = document.getElementById("total-repos");
-const TOTAL_STARS = document.getElementById("total-stars");
-const TOTAL_COMMITS = document.getElementById("total-commits");
-
-function saveStat(key, value) {
-  localStorage.setItem(key, value);
-}
-
-function loadStat(key, fallback = 0) {
-  return Number(localStorage.getItem(key)) || fallback;
-}
-
-/* ============================
-   LOADER
-============================ */
-window.addEventListener("load", () => {
-  const loader = document.getElementById("loader");
-  setTimeout(() => {
-    loader.style.opacity = "0";
-    loader.style.pointerEvents = "none";
-  }, 900);
-});
-
-/* ===== TYPING LOOP ===== */
-const nameText = "Grey";
-const el = document.getElementById("typing-name");
-let i = 0;
-let deleting = false;
-
-function typing() {
-  if (!deleting && i < nameText.length) {
-    el.textContent += nameText[i++];
-  } else if (deleting && i > 0) {
-    el.textContent = nameText.slice(0, --i);
-  } else {
-    deleting = !deleting;
+const CONFIG = {
+  githubUsername: "Grey-007",
+  maxRepos: 12,
+  typing: {
+    text: "Grey",
+    typeDelay: 140,
+    deleteDelay: 75,
+    holdDelay: 1200
   }
-  setTimeout(typing, deleting ? 80 : 300);
-}
-typing();
+};
 
-/* ============================
-   FETCH GITHUB REPOS (ONLY)
-============================ */
-async function fetchReposAndStats() {
-  try {
-    const repoRes = await fetch(
-      `https://api.github.com/users/${GITHUB_USERNAME}/repos?per_page=100&sort=updated`
-    );
+const repoContainer = document.getElementById("repo-container");
+const typingTarget = document.getElementById("typing-name");
+const sections = document.querySelectorAll("main section[id]");
+const navLinks = document.querySelectorAll("nav a");
 
-    if (!repoRes.ok) throw new Error("Rate limited");
+function initLoader() {
+  window.addEventListener("load", () => {
+    const loader = document.getElementById("loader");
+    if (!loader) return;
 
-    const repos = await repoRes.json();
-    if (!Array.isArray(repos)) throw new Error("Invalid response");
+    setTimeout(() => {
+      loader.style.opacity = "0";
+      loader.style.pointerEvents = "none";
 
-    REPO_CONTAINER.innerHTML = "";
-
-    repos.forEach(repo => {
-      if (repo.fork) return;
-      REPO_CONTAINER.appendChild(createRepoCard(repo));
-    });
-
-  } catch (err) {
-    console.error("Failed to fetch repositories", err);
-    REPO_CONTAINER.innerHTML =
-      "<p style='opacity:0.6;text-align:center'>Failed to load projects.</p>";
-  }
+      setTimeout(() => {
+        loader.remove();
+      }, 650);
+    }, 650);
+  });
 }
 
-/* ============================
-   CREATE REPO CARD
-============================ */
+function initTyping() {
+  if (!typingTarget) return;
+
+  const { text, typeDelay, deleteDelay, holdDelay } = CONFIG.typing;
+  let index = 0;
+  let deleting = false;
+
+  const tick = () => {
+    if (!deleting && index < text.length) {
+      typingTarget.textContent += text[index];
+      index += 1;
+      setTimeout(tick, typeDelay);
+      return;
+    }
+
+    if (!deleting && index === text.length) {
+      deleting = true;
+      setTimeout(tick, holdDelay);
+      return;
+    }
+
+    if (deleting && index > 0) {
+      index -= 1;
+      typingTarget.textContent = text.slice(0, index);
+      setTimeout(tick, deleteDelay);
+      return;
+    }
+
+    deleting = false;
+    setTimeout(tick, typeDelay * 1.5);
+  };
+
+  tick();
+}
+
+function createNode(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (typeof text === "string") node.textContent = text;
+  return node;
+}
+
 function createRepoCard(repo) {
-  const card = document.createElement("div");
-  card.className = "repo-card";
+  const card = createNode("article", "repo-card");
+  card.setAttribute("role", "listitem");
 
-  // GitHub OpenGraph screenshot
-  const screenshot = `https://opengraph.githubassets.com/1/${repo.full_name}`;
+  const imageWrap = createNode("div", "repo-image");
+  const img = document.createElement("img");
+  img.src = `https://opengraph.githubassets.com/1/${repo.full_name}`;
+  img.alt = `${repo.name} preview`;
+  img.loading = "lazy";
+  img.decoding = "async";
+  imageWrap.appendChild(img);
 
-  card.innerHTML = `
-    <div class="repo-image">
-      <img src="${screenshot}" alt="${repo.name} preview" loading="lazy">
-    </div>
+  const content = createNode("div", "repo-content");
+  const title = createNode("h3", "", repo.name);
+  const description = createNode("p", "", repo.description || "No description provided.");
+  const meta = createNode("div", "repo-meta", `Stars ${repo.stargazers_count} | Forks ${repo.forks_count}`);
 
-    <div class="repo-content">
-      <h3>${repo.name}</h3>
-      <p>${repo.description || "No description provided."}</p>
+  const link = createNode("a", "", "View Repository ->");
+  link.href = repo.html_url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
 
-      <div class="repo-meta">
-        ⭐ ${repo.stargazers_count}
-        · 🍴 ${repo.forks_count}
-      </div>
-
-      <a href="${repo.html_url}" target="_blank" rel="noopener">
-        View Repository →
-      </a>
-    </div>
-  `;
+  content.append(title, description, meta, link);
+  card.append(imageWrap, content);
 
   return card;
 }
 
-/* ============================
-   SMOOTH HEADER SCROLL
-============================ */
-document.querySelectorAll("nav a").forEach(link => {
-  link.addEventListener("click", e => {
-    e.preventDefault();
-    const target = document.querySelector(link.getAttribute("href"));
-    target.scrollIntoView({ behavior: "smooth" });
+function renderRepoState(message) {
+  repoContainer.innerHTML = "";
+  const info = createNode("p", "repo-status", message);
+  repoContainer.appendChild(info);
+}
+
+async function fetchRepos() {
+  const endpoint = `https://api.github.com/users/${CONFIG.githubUsername}/repos?per_page=100&sort=updated`;
+  const response = await fetch(endpoint, {
+    headers: {
+      Accept: "application/vnd.github+json"
+    }
   });
-});
 
-/* ============================
-   INIT
-============================ */
-fetchReposAndStats()
+  if (!response.ok) {
+    throw new Error(`GitHub request failed: ${response.status}`);
+  }
 
+  const repos = await response.json();
+  if (!Array.isArray(repos)) throw new Error("GitHub response was not an array");
 
+  return repos
+    .filter(repo => !repo.fork)
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    .slice(0, CONFIG.maxRepos);
+}
+
+async function loadRepos() {
+  if (!repoContainer) return;
+
+  renderRepoState("Loading projects...");
+
+  try {
+    const repos = await fetchRepos();
+
+    if (!repos.length) {
+      renderRepoState("No public projects found yet.");
+      return;
+    }
+
+    repoContainer.innerHTML = "";
+    repos.forEach(repo => {
+      repoContainer.appendChild(createRepoCard(repo));
+    });
+  } catch (error) {
+    console.error("Failed to fetch repositories", error);
+    renderRepoState("Failed to load projects. Please try again later.");
+  }
+}
+
+function initNavScroll() {
+  navLinks.forEach(link => {
+    link.addEventListener("click", event => {
+      event.preventDefault();
+      const selector = link.getAttribute("href");
+      if (!selector) return;
+
+      const target = document.querySelector(selector);
+      if (!target) return;
+
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+function initActiveSectionObserver() {
+  if (!("IntersectionObserver" in window)) return;
+
+  const observer = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const id = entry.target.getAttribute("id");
+        if (!id) return;
+
+        navLinks.forEach(link => {
+          const isActive = link.getAttribute("href") === `#${id}`;
+          if (isActive) {
+            link.setAttribute("aria-current", "page");
+          } else {
+            link.removeAttribute("aria-current");
+          }
+        });
+      });
+    },
+    {
+      threshold: 0.45,
+      rootMargin: "-10% 0px -45%"
+    }
+  );
+
+  sections.forEach(section => observer.observe(section));
+}
+
+initLoader();
+initTyping();
+initNavScroll();
+initActiveSectionObserver();
+loadRepos();
