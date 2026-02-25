@@ -43,17 +43,30 @@
       <p class="hero-subtitle">Student | Linux enthusiast | Open-source learner</p>
       <p class="arch-btw">"I use <span>Arch</span> btw"</p>
       <a class="primary-cta" href="#projects">See Projects</a>
+      <div class="scroll-indicator"></div>
     </section>
 
-    <section id="projects" class="projects section-shell">
+    <section id="projects" class="projects section-shell hidden-section">
       <div class="section-head">
         <h2>Projects</h2>
-        <p>Latest public repositories from GitHub.</p>
+        <p>A selection of my favorite projects.</p>
       </div>
-      <div id="repo-container" class="repo-grid" role="list"></div>
+      <div class="carousel-wrapper">
+        <div class="carousel-viewport">
+          <div id="carousel-track" class="carousel-track"></div>
+        </div>
+        <div class="carousel-nav">
+          <button id="prev-btn" class="carousel-arrow" aria-label="Previous project">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </button>
+          <button id="next-btn" class="carousel-arrow" aria-label="Next project">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </button>
+        </div>
+      </div>
     </section>
 
-    <section id="socials" class="socials section-shell">
+    <section id="socials" class="socials section-shell hidden-section">
       <div class="section-head">
         <h2>Socials</h2>
         <p>Where to find me.</p>
